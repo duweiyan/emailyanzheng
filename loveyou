@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>爱心转换文字</title>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            background: #000;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-family: Microsoft Yahei;
+        }
+        #canvas {
+            filter: 
+                drop-shadow(0 0 25px rgba(255, 30, 30, 0.95))
+                drop-shadow(0 0 50px rgba(255, 0, 0, 0.7));
+            transition: opacity 2s;
+        }
+        #text {
+            position: absolute;
+            color: #ff4444;
+            font-size: 60px;
+            text-align: center;
+            opacity: 0;
+            transition: opacity 2s;
+            text-shadow: 0 0 20px rgba(255, 0, 0, 0.8);
+            pointer-events: none;
+        }
+    </style>
+</head>
+<body>
+    <canvas id="canvas"></canvas>
+    <div id="text">感谢大宝贝的不离不弃</div>
+
+    <script>
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        const textElement = document.getElementById('text');
+
+        // 画布尺寸适配
+        function resizeCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
+        resizeCanvas();
+        window.addEventListener('resize', resizeCanvas);
+
+        // 高密度粒子类
+        class Particle {
+            constructor(targetX, targetY, layer) {
+                this.x = Math.random() * canvas.width;
+                this.y = canvas.height + Math.random() * 300;
+                this.targetX = targetX;
+                this.targetY = targetY;
+                this.speed = Math.random() * 4 + 6;
+                this.size = Math.random() * 1.2 + 1;
+                this.alpha = 0;
+                this.layer = layer;
+                this.angle = Math.random() * Math.PI * 2;
+            }
+
+            update() {
+                const dx = this.targetX - this.x;
+                const dy = this.targetY - this.y;
+                const dist = Math.sqrt(dx*dx + dy*dy);
+                
+                // 速度衰减算法
+                const speedFactor = Math.min(dist/80, 1);
+                if(dist > 1) {
+                    this.x += (dx/dist) * this.speed * speedFactor;
+                    this.y += (dy/dist) * this.speed * speedFactor;
+                }
+                
+                // 动态参数
+                this.alpha = Math.min(1 - dist/150, 1);
+                this.angle += 0.04;
+                this.y += Math.sin(this.angle) * 0.6;
+            }
+
+            draw() {
+                ctx.fillStyle = `rgba(255, 40, 40, ${0.95 - this.layer*0.03})`;
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+                ctx.fill();
+            }
+        }
+
+        // 密集填充心形生成器
+        function createSolidHeart() {
+            const particles = [];
+            const layers = 12;
+            const baseDensity = 400;
+
+            for(let z = 0; z < layers; z++) {
+                const scale = 24 - z*0.8;
+                const verticalOffset = z * 8;
+                const density = baseDensity * (1 + z*0.2);
+                
+                for(let i = 0; i < density; i++) {
+                    const t = (i/density) * Math.PI * 2;
+                    const x = scale * (16 * Math.pow(Math.sin(t), 3));
+                    const y = -scale * (13 * Math.cos(t) - 5*Math.cos(2*t) - 2*Math.cos(3*t) - Math.cos(4*t));
+                    const fillFactor = 1 - Math.pow(z/layers, 2);
+                    const jitter = (1 - fillFactor) * 5;
+                    
+                    particles.push(new Particle(
+                        canvas.width/2 + x*fillFactor + (Math.random()-0.5)*jitter,
+                        canvas.height/2 + y*fillFactor - verticalOffset,
+                        z
+                    ));
+                }
+            }
+            return particles;
+        }
+
+        // 创建粒子
+        const particles = createSolidHeart();
+        let animationRunning = true;
+
+        // 动画循环
+        function animate() {
+            if (!animationRunning) return;
+            
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.1)';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            particles.forEach(p => {
+                p.update();
+                p.draw();
+            });
+
+            requestAnimationFrame(animate);
+        }
+
+        // 启动动画
+        setTimeout(() => {
+            canvas.style.opacity = 1;
+            animate();
+            
+            // 5秒后开始渐隐
+            setTimeout(() => {
+                animationRunning = false; // 停止粒子动画
+                canvas.style.opacity = 0;
+                
+                // 显示文字
+                setTimeout(() => {
+                    textElement.style.opacity = 1;
+                }, 2000);
+            }, 5000);
+        }, 300);
+
+        // 初始化文字位置
+        textElement.style.left = (window.innerWidth - textElement.offsetWidth)/2 + 'px';
+        textElement.style.top = (window.innerHeight - textElement.offsetHeight)/2 + 'px';
+    </script>
+</body>
+</html>
